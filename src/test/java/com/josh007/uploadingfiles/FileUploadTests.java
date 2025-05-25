@@ -5,11 +5,13 @@ import java.util.stream.Stream;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
-
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -21,18 +23,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.josh007.uploadingfiles.StorageFileNotFoundException;
-import com.josh007.uploadingfiles.StorageService;
-
-@AutoConfigureMockMvc
 @SpringBootTest
+@AutoConfigureMockMvc
+@Import(FileUploadTests.TestConfig.class)  // Import the custom config
 public class FileUploadTests {
 
     @Autowired
     private MockMvc mvc;
 
-    @MockBean
+    @Autowired
     private StorageService storageService;
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        public StorageService storageService() {
+            return Mockito.mock(StorageService.class);
+        }
+    }
 
     @Test
     public void shouldListAllFiles() throws Exception {
@@ -56,7 +64,6 @@ public class FileUploadTests {
         then(this.storageService).should().store(multipartFile);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void should404WhenMissingFile() throws Exception {
         given(this.storageService.loadAsResource("test.txt"))
@@ -64,5 +71,4 @@ public class FileUploadTests {
 
         this.mvc.perform(get("/files/test.txt")).andExpect(status().isNotFound());
     }
-
 }
